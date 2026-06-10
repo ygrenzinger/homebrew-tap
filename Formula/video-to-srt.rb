@@ -1,7 +1,7 @@
 class VideoToSrt < Formula
   desc "Generate SRT subtitles from YouTube or local video sources"
   homepage "https://github.com/ygrenzinger/video-to-srt"
-  version "1.1.0"
+  version "1.2.0"
   license :cannot_represent
 
   depends_on "ffmpeg"
@@ -9,21 +9,21 @@ class VideoToSrt < Formula
 
   on_macos do
     if Hardware::CPU.arm?
-      url "https://github.com/ygrenzinger/video-to-srt/releases/download/v1.1.0/video-to-srt_1.1.0_darwin_arm64.tar.gz"
-      sha256 "2cffb0008722be80a710bd226608afd872542d4b331a4af5e7f826a0975a55cf"
+      url "https://github.com/ygrenzinger/video-to-srt/releases/download/v1.2.0/video-to-srt_1.2.0_darwin_arm64.tar.gz"
+      sha256 "505a6662a5030419d7b8c55b0a0e6cd100367756442d07a7e60ff6014d33fd33"
     else
-      url "https://github.com/ygrenzinger/video-to-srt/releases/download/v1.1.0/video-to-srt_1.1.0_darwin_amd64.tar.gz"
-      sha256 "a9c9c8034e3c0d0d3182668b8ac9ed86137b100ae8db7616f4484a1804e4e90c"
+      url "https://github.com/ygrenzinger/video-to-srt/releases/download/v1.2.0/video-to-srt_1.2.0_darwin_amd64.tar.gz"
+      sha256 "f87b036a746f4b6a6c3280a9f8a5c9ea82ba8c98a86109f2266085f7bffb8df3"
     end
   end
 
   on_linux do
     if Hardware::CPU.arm?
-      url "https://github.com/ygrenzinger/video-to-srt/releases/download/v1.1.0/video-to-srt_1.1.0_linux_arm64.tar.gz"
-      sha256 "58021d26314f2fa9fe1585e0c769a1f7dcb504b44beae4dfe685dfc166537dd3"
+      url "https://github.com/ygrenzinger/video-to-srt/releases/download/v1.2.0/video-to-srt_1.2.0_linux_arm64.tar.gz"
+      sha256 "e7fd12f21939d482b906093f7e2cf54298921febae4fd2ee56240d2acd8d42bc"
     else
-      url "https://github.com/ygrenzinger/video-to-srt/releases/download/v1.1.0/video-to-srt_1.1.0_linux_amd64.tar.gz"
-      sha256 "1854b7b6060aef27458c20129e1622ba3e2029d28ba0cb8f029a7fff1e752f44"
+      url "https://github.com/ygrenzinger/video-to-srt/releases/download/v1.2.0/video-to-srt_1.2.0_linux_amd64.tar.gz"
+      sha256 "a8ffeb43d3ba96f0f1f30a59d8c0d4228e72b2791d2d1cc3ad50c2c154f33790"
     end
   end
 
