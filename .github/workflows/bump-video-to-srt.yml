@@ -1,0 +1,134 @@
+name: Bump video-to-srt formula
+
+on:
+  schedule:
+    - cron: "17 6 * * *"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Optional release tag, e.g. v1.1.0"
+        required: false
+        type: string
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  bump:
+    runs-on: ubuntu-latest
+
+    env:
+      UPSTREAM_REPO: ygrenzinger/video-to-srt
+      FORMULA: Formula/video-to-srt.rb
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Fetch latest release
+        id: release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          INPUT_TAG: ${{ inputs.tag }}
+        run: |
+          set -euo pipefail
+
+          if [ -n "${INPUT_TAG}" ]; then
+            gh api "repos/${UPSTREAM_REPO}/releases/tags/${INPUT_TAG}" > release.json
+          else
+            gh api "repos/${UPSTREAM_REPO}/releases/latest" > release.json
+          fi
+
+          tag="$(jq -r '.tag_name' release.json)"
+          version="${tag#v}"
+
+          echo "tag=${tag}" >> "$GITHUB_OUTPUT"
+          echo "version=${version}" >> "$GITHUB_OUTPUT"
+
+          jq -r '.assets[] | [.name, .browser_download_url, .digest] | @tsv' release.json > assets.tsv
+
+      - name: Update formula
+        id: update
+        env:
+          VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          set -euo pipefail
+
+          current="$(ruby -ne 'puts $1 if /version "([^"]+)"/' "$FORMULA")"
+          if [ "$current" = "$VERSION" ]; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          ruby <<'RUBY'
+          formula = ENV.fetch("FORMULA")
+          version = ENV.fetch("VERSION")
+
+          assets = {}
+          File.readlines("assets.tsv", chomp: true).each do |line|
+            name, url, digest = line.split("\t")
+            next unless name&.end_with?(".tar.gz")
+
+            assets[name] = {
+              url: url,
+              sha256: digest.sub(/\Asha256:/, ""),
+            }
+          end
+
+          platforms = %w[
+            darwin_arm64
+            darwin_amd64
+            linux_arm64
+            linux_amd64
+          ]
+
+          text = File.read(formula)
+          text.sub!(/version "[^"]+"/, %(version "#{version}"))
+
+          platforms.each do |platform|
+            filename = "video-to-srt_#{version}_#{platform}.tar.gz"
+            asset = assets.fetch(filename) { abort "Missing release asset: #{filename}" }
+
+            pattern = %r{url "https://github\.com/ygrenzinger/video-to-srt/releases/download/v[^/]+/video-to-srt_[^"]+_#{platform}\.tar\.gz"\n\s+sha256 "[0-9a-f]{64}"}
+            replacement = %(url "#{asset[:url]}"\n      sha256 "#{asset[:sha256]}")
+
+            abort "Could not update #{platform}" unless text.sub!(pattern, replacement)
+          end
+
+          File.write(formula, text)
+          RUBY
+
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+
+      - name: Validate formula syntax
+        if: steps.update.outputs.changed == 'true'
+        run: ruby -c "$FORMULA"
+
+      - name: Open pull request
+        if: steps.update.outputs.changed == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.release.outputs.tag }}
+          VERSION: ${{ steps.release.outputs.version }}
+        run: |
+          set -euo pipefail
+
+          branch="bump-video-to-srt-${VERSION}"
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git switch -c "$branch"
+          git add "$FORMULA"
+          git commit -m "Update video-to-srt to ${VERSION}"
+          git push --force-with-lease origin "$branch"
+
+          existing_pr="$(gh pr list --head "$branch" --json number --jq '.[0].number // empty')"
+
+          if [ -z "$existing_pr" ]; then
+            gh pr create \
+              --title "Update video-to-srt to ${VERSION}" \
+              --body "Updates the Homebrew formula for ${TAG}." \
+              --base main \
+              --head "$branch"
+          fi
