@@ -12,7 +12,6 @@ on:
 
 permissions:
   contents: write
-  pull-requests: write
 
 jobs:
   bump:
@@ -24,6 +23,11 @@ jobs:
 
     steps:
       - uses: actions/checkout@v6
+        with:
+          ref: main
+
+      - name: Set up Homebrew
+        uses: Homebrew/actions/setup-homebrew@main
 
       - name: Fetch latest release
         id: release
@@ -104,31 +108,33 @@ jobs:
         if: steps.update.outputs.changed == 'true'
         run: ruby -c "$FORMULA"
 
-      - name: Open pull request
+      - name: Validate formula with Homebrew
         if: steps.update.outputs.changed == 'true'
         env:
-          GH_TOKEN: ${{ github.token }}
-          TAG: ${{ steps.release.outputs.tag }}
+          HOMEBREW_NO_INSTALL_FROM_API: "1"
+        run: |
+          set -euo pipefail
+
+          tap_dir="$(brew --repository)/Library/Taps/ygrenzinger/homebrew-tap"
+          mkdir -p "$(dirname "$tap_dir")"
+          rm -rf "$tap_dir"
+          ln -s "$GITHUB_WORKSPACE" "$tap_dir"
+
+          brew style "$FORMULA"
+          brew audit --strict --online --display-filename --formula ygrenzinger/tap/video-to-srt
+          brew install --formula ygrenzinger/tap/video-to-srt
+          brew test ygrenzinger/tap/video-to-srt
+
+      - name: Commit to main
+        if: steps.update.outputs.changed == 'true'
+        env:
           VERSION: ${{ steps.release.outputs.version }}
         run: |
           set -euo pipefail
 
-          branch="bump-video-to-srt-${VERSION}"
-
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-          git switch -c "$branch"
           git add "$FORMULA"
           git commit -m "Update video-to-srt to ${VERSION}"
-          git push --force origin "$branch"
-
-          existing_pr="$(gh pr list --head "$branch" --json number --jq '.[0].number // empty')"
-
-          if [ -z "$existing_pr" ]; then
-            gh pr create \
-              --title "Update video-to-srt to ${VERSION}" \
-              --body "Updates the Homebrew formula for ${TAG}." \
-              --base main \
-              --head "$branch"
-          fi
+          git push origin HEAD:main
