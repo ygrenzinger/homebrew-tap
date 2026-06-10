@@ -121,7 +121,7 @@ jobs:
           git switch -c "$branch"
           git add "$FORMULA"
           git commit -m "Update video-to-srt to ${VERSION}"
-          git push --force-with-lease origin "$branch"
+          git push --force origin "$branch"
 
           existing_pr="$(gh pr list --head "$branch" --json number --jq '.[0].number // empty')"
 
