@@ -126,6 +126,7 @@ jobs:
       - name: Commit to main
         if: steps.update.outputs.changed == 'true'
         env:
+          GITHUB_TOKEN: ${{ github.token }}
           VERSION: ${{ steps.release.outputs.version }}
         run: |
           set -euo pipefail
@@ -135,4 +136,4 @@ jobs:
 
           git add "$FORMULA"
           git commit -m "Update video-to-srt to ${VERSION}"
-          git push origin HEAD:main
+          git push "https://x-access-token:${GITHUB_TOKEN}@github.com/${GITHUB_REPOSITORY}.git" HEAD:main
