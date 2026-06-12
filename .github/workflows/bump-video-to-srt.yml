@@ -29,12 +29,6 @@ jobs:
       - name: Set up Homebrew
         uses: Homebrew/actions/setup-homebrew@main
 
-      - name: Install Linux sandbox dependency
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y bubblewrap
-          bwrap --version
-
       - name: Fetch latest release
         id: release
         env:
@@ -118,6 +112,7 @@ jobs:
         if: steps.update.outputs.changed == 'true'
         env:
           HOMEBREW_NO_INSTALL_FROM_API: "1"
+          HOMEBREW_NO_SANDBOX_LINUX: "1"
         run: |
           set -euo pipefail
 
