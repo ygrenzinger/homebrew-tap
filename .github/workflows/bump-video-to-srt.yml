@@ -112,7 +112,6 @@ jobs:
         if: steps.update.outputs.changed == 'true'
         env:
           HOMEBREW_NO_INSTALL_FROM_API: "1"
-          HOMEBREW_NO_SANDBOX_LINUX: "1"
         run: |
           set -euo pipefail
 
@@ -123,8 +122,6 @@ jobs:
 
           brew style "$FORMULA"
           brew audit --strict --online --display-filename --formula ygrenzinger/tap/video-to-srt
-          brew install --formula ygrenzinger/tap/video-to-srt
-          brew test ygrenzinger/tap/video-to-srt
 
       - name: Commit to main
         if: steps.update.outputs.changed == 'true'
